@@ -1,5 +1,6 @@
 const fs = require('fs');
 const myConsole = new console.Console(fs.createWriteStream("./logs.txt"));
+const whatsappService = require('../services/whatsappService');
 
 const verifyToken = (req, res) => {  // req is what input we receive, res is what output we send
     try {
@@ -19,21 +20,33 @@ const verifyToken = (req, res) => {  // req is what input we receive, res is wha
 
 const receiveMessage = (req, res) => {
     try {
-        // var entry = (req.body['entry'][0]);
-        // var changes = (req.body['changes'][0]);
         var value = req.res.req.body['entry'][0]['changes'][0]['value']
         var messages = value['messages'];
-        var message = messages[0]['text']['body'];
-
-        myConsole.log(message)
-        // console.log(res);
-        // res.send(message);
+        
+        if (typeof messages != 'undefined') {
+            var [type, number, content] = getInfo(messages)
+            myConsole.log(type, number, content)
+            whatsappService.sendMessageWhatsapp('You sent: ' + content, number);
+        }
+        res.send('RECEIVED');
     } catch (e) {
         myConsole.log(e);
         console.log(e);
-        // res.send(e);
+        res.send(e);
     }
     
+}
+
+function getInfo(messages) {
+    var message = messages[0];
+    var number = message['from'];
+    var type = message['type'];
+    if (type == 'image') {
+        var content = message['image']['sha256'];
+    } else if (type == 'text') {
+        var content = message['text']['body'];
+    }
+    return [type, number, content]
 }
 
 // Export functions to be used in other files
